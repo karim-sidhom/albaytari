@@ -396,7 +396,6 @@ function renderEmergency(cc){
 }
 
 // ══ GPS ══
-function isGood(p){return p?.coords&&Number.isFinite(p.coords.accuracy)&&p.coords.accuracy<=150;}
 function applyPos(pos, notify=true){
     const{latitude:nl,longitude:no,accuracy:ac}=pos.coords;
     const has=Number.isFinite(lat);
@@ -408,19 +407,35 @@ function applyPos(pos, notify=true){
         search(lat, lng);
     }
 }
+function onGPSError(err){
+    const m={1:'⚠️ رُفض إذن GPS. يرجى السماح بالموقع في إعدادات المتصفح.',2:'⚠️ GPS غير متاح في هذا الجهاز.',3:'⚠️ انتهت مهلة GPS. حاول مجدداً.'};
+    document.getElementById('gps-txt').textContent=m[err?.code]||'⚠️ خطأ GPS.';
+    listMsg('⚠️ تعذّر تحديد موقعك. استخدم الوضع اليدوي أو أعد المحاولة.');
+}
 function startGPS(){
     if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null;}
     lat=null; lng=null;
-    if(!navigator.geolocation){document.getElementById('gps-txt').textContent='⚠️ GPS غير مدعوم.';return;}
-    let init=false;
-    wid=navigator.geolocation.watchPosition(pos=>{
-        if(!isGood(pos)){document.getElementById('gps-txt').textContent='📡 انتظار GPS... (دقة: '+Math.round(pos.coords?.accuracy||999)+' م)';return;}
-        if(!init){applyPos(pos,false);init=true;return;}
-        applyPos(pos,true);
-    },err=>{
-        const m={1:'⚠️ رُفض إذن GPS. يرجى السماح بالموقع.',2:'⚠️ GPS غير متاح.',3:'⚠️ انتهت مهلة GPS.'};
-        document.getElementById('gps-txt').textContent=m[err?.code]||'⚠️ خطأ GPS.';
-    },GPS_OPT);
+    if(!navigator.geolocation){
+        document.getElementById('gps-txt').textContent='⚠️ GPS غير مدعوم في هذا المتصفح.';
+        listMsg('⚠️ GPS غير مدعوم. استخدم الوضع اليدوي.');
+        return;
+    }
+    document.getElementById('gps-txt').textContent='📡 جارٍ طلب إذن الموقع...';
+    listMsg('📡 في انتظار إذن GPS...');
+    // getCurrentPosition يطلب الإذن فوراً ويُعطي أول موقع بسرعة
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            applyPos(pos, false);
+            // ثم watchPosition للتحديث المستمر
+            wid = navigator.geolocation.watchPosition(
+                pos2 => applyPos(pos2, true),
+                onGPSError,
+                {enableHighAccuracy:true, timeout:30000, maximumAge:10000}
+            );
+        },
+        onGPSError,
+        {enableHighAccuracy:false, timeout:10000, maximumAge:60000}
+    );
 }
 
 // ══ TTS ══
