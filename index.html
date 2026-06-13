@@ -416,25 +416,15 @@ function startGPS(){
     if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null;}
     lat=null; lng=null;
     if(!navigator.geolocation){
-        document.getElementById('gps-txt').textContent='⚠️ GPS غير مدعوم في هذا المتصفح.';
-        listMsg('⚠️ GPS غير مدعوم. استخدم الوضع اليدوي.');
+        document.getElementById('gps-txt').textContent='⚠️ GPS غير مدعوم.';
         return;
     }
     document.getElementById('gps-txt').textContent='📡 جارٍ طلب إذن الموقع...';
     listMsg('📡 في انتظار إذن GPS...');
-    // getCurrentPosition يطلب الإذن فوراً ويُعطي أول موقع بسرعة
-    navigator.geolocation.getCurrentPosition(
-        pos => {
-            applyPos(pos, false);
-            // ثم watchPosition للتحديث المستمر
-            wid = navigator.geolocation.watchPosition(
-                pos2 => applyPos(pos2, true),
-                onGPSError,
-                {enableHighAccuracy:true, timeout:30000, maximumAge:10000}
-            );
-        },
+    wid = navigator.geolocation.watchPosition(
+        pos => applyPos(pos, Number.isFinite(lat)),
         onGPSError,
-        {enableHighAccuracy:false, timeout:10000, maximumAge:60000}
+        {enableHighAccuracy:true, timeout:20000, maximumAge:0}
     );
 }
 
