@@ -615,27 +615,32 @@ async function search(la, lo) {
     const norm = arr => arr.map(p=>({...p, dist:haversine(la,lo,p.lat,p.lon)})).sort((a,b)=>a.dist-b.dist);
     function dedup(arr){const seen=new Set();return arr.filter(m=>{const k=m.lat.toFixed(4)+','+m.lon.toFixed(4);if(seen.has(k))return false;seen.add(k);return true;});}
 
+    // Accumulate all results across radii before showing "not found"
+    let allFound = false;
     async function tryR(ri, req=true){
-        const r = RADII[ri]; if(!r) return false;
+        const r = RADII[ri]; if(r===undefined) return false;
         listMsg(`🐾 البحث في نطاق ${r<1?r*1000+' م':r+' كم'}...`);
         let data, t=null;
         try{
             const ctrl = new AbortController();
-            t = setTimeout(()=>ctrl.abort(), 15000);
+            t = setTimeout(()=>ctrl.abort(), 25000);
             data = await fetchVets(la, lo, r, ctrl);
         } catch(e){
             if(s!==seq) return true;
-            listMsg('⚠️ تعذّر الاتصال بالخوادم. تحقق من الإنترنت وأعد المحاولة.');
+            if(e.name==='AbortError') listMsg('⚠️ انتهت مهلة الاتصال. تحقق من الإنترنت وأعد المحاولة.');
+            else listMsg('⚠️ تعذّر الاتصال بالخوادم. تحقق من الإنترنت وأعد المحاولة.');
             return true;
         } finally{ if(t) clearTimeout(t); }
         if(s!==seq) return true;
+        if(!data || !data.length){ return false; }
         const items = dedup(norm(data).filter(m=>m.dist<=r));
-        if(!items.length){ if(req) return false; listMsg('لا توجد عيادات بيطرية في نطاق '+r+' كم.'); return true; }
+        if(!items.length){ return false; }
+        allFound = true;
         renderList(items, r, 5, geo.label, ri<RADII.length-1 ? ()=>tryR(ri+1,false) : null);
         return true;
     }
     for(let i=0;i<RADII.length;i++){ if(await tryR(i)) return; }
-    listMsg('لم يتم العثور على عيادات بيطرية في هذه المنطقة.');
+    if(!allFound) listMsg('لم يتم العثور على عيادات بيطرية في هذه المنطقة. جرّب الوضع اليدوي.');
 }
 
 function updateStats(items, r){
