@@ -559,10 +559,17 @@ function viewbox(la,lo,r){const lD=r/111.32,oD=r/(111.32*Math.max(Math.cos(d2r(l
 
 async function fetchAll(la,lo,r,ctrl){
     const all=[];
+    const vb=viewbox(la,lo,r);
+    // Par tag OSM
     const amenities=['veterinary'];
     const shops=['veterinary','pet'];
-    const keywords=['بيطري','بيطرية','طبيب بيطري','عيادة بيطرية','veterinaire','clinique veterinaire'];
-    const vb=viewbox(la,lo,r);
+    // Par mot-clé — large couverture arabe + français + anglais
+    const keywords=[
+        'بيطري','بيطرية','طبيب بيطري','عيادة بيطرية','دكتور بيطري','مستشفى بيطري',
+        'veterinaire','vétérinaire','clinique veterinaire','clinique vétérinaire',
+        'medecin veterinaire','médecin vétérinaire','docteur veterinaire',
+        'veterinary','vet clinic','animal clinic','animal hospital'
+    ];
     for(const a of amenities){try{const res=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&amenity='+a+'&viewbox='+vb+'&bounded=1&limit=50&accept-language=ar',{signal:ctrl.signal});if(res.ok)all.push(...await res.json());}catch(e){if(e.name==='AbortError')throw e;}}
     for(const s of shops){try{const res=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&shop='+s+'&viewbox='+vb+'&bounded=1&limit=50&accept-language=ar',{signal:ctrl.signal});if(res.ok)all.push(...await res.json());}catch(e){if(e.name==='AbortError')throw e;}}
     for(const kw of keywords){try{const res=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&q='+encodeURIComponent(kw)+'&viewbox='+vb+'&bounded=1&limit=50&accept-language=ar',{signal:ctrl.signal});if(res.ok)all.push(...await res.json());}catch(e){if(e.name==='AbortError')throw e;}}
@@ -688,17 +695,13 @@ window.onload = function(){
     document.getElementById('apply-btn').onclick = applyManual;
     document.getElementById('manual-coords').addEventListener('keydown',e=>{if(e.key==='Enter')applyManual();});
 
-    // ══ Demande GPS au démarrage ══
-    listMsg('📡 في انتظار إذن الموقع...');
-    if(navigator.geolocation){
-        navigator.geolocation.getCurrentPosition(
-            pos => { applyPos(pos, false); startGPS(); },
-            err => { startGPS(); },
-            {enableHighAccuracy:true, timeout:8000, maximumAge:0}
-        );
-    } else {
-        startGPS();
-    }
+    // تشغيل مباشر على نابل
+    lat = 36.4561; lng = 10.7376;
+    document.getElementById('gps-txt').textContent = '📍 نابل، تونس (موقع افتراضي)';
+    document.getElementById('pos-mode').value = 'manual';
+    document.getElementById('manual-panel').style.display = 'flex';
+    document.getElementById('manual-coords').value = '36.4561, 10.7376';
+    search(lat, lng);
     initPrayer();
 
     // 🐱 Ronronnement de Minouch toutes les 15 minutes
