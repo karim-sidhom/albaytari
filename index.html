@@ -622,14 +622,22 @@ function startGPS(){
     if(!navigator.geolocation){document.getElementById('gps-txt').textContent='⚠️ GPS غير مدعوم.';return;}
     document.getElementById('gps-txt').textContent='📡 في انتظار إذن الموقع...';
     listMsg('📡 في انتظار إذن GPS...');
-    let init=false,dt=null,pp=null;
-    wid=navigator.geolocation.watchPosition(pos=>{
-        if(!isGood(pos)){document.getElementById('gps-txt').textContent='📡 انتظار GPS... (دقة: '+Math.round(pos.coords?.accuracy||999)+' م)';return;}
-        if(!init){applyPos(pos,false);init=true;return;}
-        pp=pos;if(dt)return;
-        let cd=20;document.getElementById('gps-txt').textContent='📡 تحديث... ('+cd+'ث)';
-        dt=setInterval(()=>{cd--;if(cd>0)document.getElementById('gps-txt').textContent='📡 تحديث... ('+cd+'ث)';else{clearInterval(dt);dt=null;applyPos(pp,true);}},1000);
-    },err=>{const m={1:'⚠️ رُفض إذن GPS.',2:'⚠️ GPS غير متاح.',3:'⚠️ انتهت مهلة GPS.'};document.getElementById('gps-txt').textContent=m[err?.code]||'⚠️ خطأ GPS.';listMsg('⚠️ تعذّر تحديد موقعك. استخدم الوضع اليدوي.');},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+    // getCurrentPosition force la popup de permission immédiatement
+    navigator.geolocation.getCurrentPosition(pos=>{
+        applyPos(pos,false);
+        // Puis watchPosition pour les mises à jour
+        let dt=null,pp=null;
+        wid=navigator.geolocation.watchPosition(pos2=>{
+            if(!isGood(pos2)){document.getElementById('gps-txt').textContent='📡 انتظار GPS... (دقة: '+Math.round(pos2.coords?.accuracy||999)+' م)';return;}
+            pp=pos2;if(dt)return;
+            let cd=20;document.getElementById('gps-txt').textContent='📡 تحديث... ('+cd+'ث)';
+            dt=setInterval(()=>{cd--;if(cd>0)document.getElementById('gps-txt').textContent='📡 تحديث... ('+cd+'ث)';else{clearInterval(dt);dt=null;applyPos(pp,true);}},1000);
+        },()=>{},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+    },err=>{
+        const m={1:'⚠️ رُفض إذن GPS.',2:'⚠️ GPS غير متاح.',3:'⚠️ انتهت مهلة GPS.'};
+        document.getElementById('gps-txt').textContent=m[err?.code]||'⚠️ خطأ GPS.';
+        listMsg('⚠️ تعذّر تحديد موقعك. استخدم الوضع اليدوي.');
+    },{enableHighAccuracy:true,timeout:20000,maximumAge:0});
 }
 // ══ TTS ══
 function loadVoice(){if(!window.speechSynthesis)return;const v=window.speechSynthesis.getVoices();arVoice=v.find(x=>x.lang==='ar-SA')||v.find(x=>x.lang==='ar-TN')||v.find(x=>x.lang.startsWith('ar'))||null;}
@@ -695,13 +703,9 @@ window.onload = function(){
     document.getElementById('apply-btn').onclick = applyManual;
     document.getElementById('manual-coords').addEventListener('keydown',e=>{if(e.key==='Enter')applyManual();});
 
-    // تشغيل مباشر على نابل
-    lat = 36.4561; lng = 10.7376;
-    document.getElementById('gps-txt').textContent = '📍 نابل، تونس (موقع افتراضي)';
-    document.getElementById('pos-mode').value = 'manual';
-    document.getElementById('manual-panel').style.display = 'flex';
-    document.getElementById('manual-coords').value = '36.4561, 10.7376';
-    search(lat, lng);
+    sel.value = 'auto';
+    panel.style.display = 'none';
+    startGPS();
     initPrayer();
 
     // 🐱 Ronronnement de Minouch toutes les 15 minutes
