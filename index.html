@@ -552,31 +552,64 @@ function listMsg(m){document.getElementById('rlist').innerHTML='<div class="psta
 function show(id,d='block'){const e=document.getElementById(id);if(e)e.style.display=d;}
 function showFlex(id){show(id,'flex');}
 
-// ══ OVERPASS SEARCH ══
-async function fetchVets(la, lo, r, ctrl) {
+// ══ SEARCH ENGINE : Nominatim + Overpass combinés ══
+const OVERPASS_SERVERS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter'
+];
+
+async function fetchNominatim(la, lo, r, ctrl) {
     const all = [];
-    const amenities = ['veterinary'];
-    const shops = ['veterinary', 'pet', 'pet_care'];
-    const keywords = ['veterinaire','veterinary','بيطري','بيطرية','طبيب بيطري','عيادة بيطرية','clinique veterinaire','médecin vétérinaire','حيوانات','vet'];
     const vb = viewbox(la, lo, r);
-    for(const a of amenities){
-        try{const res=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&amenity='+a+'&viewbox='+vb+'&bounded=1&limit=50&accept-language=ar',{signal:ctrl.signal});if(res.ok)all.push(...await res.json());}
-        catch(e){if(e.name==='AbortError')throw e;}
-    }
-    for(const s of shops){
-        try{const res=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&shop='+s+'&viewbox='+vb+'&bounded=1&limit=50&accept-language=ar',{signal:ctrl.signal});if(res.ok)all.push(...await res.json());}
-        catch(e){if(e.name==='AbortError')throw e;}
-    }
-    for(const kw of keywords){
-        try{const res=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&q='+encodeURIComponent(kw)+'&viewbox='+vb+'&bounded=1&limit=50&accept-language=ar',{signal:ctrl.signal});if(res.ok)all.push(...await res.json());}
-        catch(e){if(e.name==='AbortError')throw e;}
+    const queries = [
+        'amenity=veterinary',
+        'shop=veterinary',
+        'q=' + encodeURIComponent('بيطري'),
+        'q=' + encodeURIComponent('بيطرية'),
+        'q=' + encodeURIComponent('طبيب بيطري'),
+        'q=' + encodeURIComponent('عيادة بيطرية'),
+        'q=' + encodeURIComponent('veterinaire'),
+        'q=' + encodeURIComponent('clinique veterinaire'),
+        'q=' + encodeURIComponent('medecin veterinaire'),
+    ];
+    for(const q of queries){
+        try{
+            const res = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&'+q+'&viewbox='+vb+'&bounded=1&limit=50&accept-language=ar', {signal:ctrl.signal});
+            if(res.ok) all.push(...await res.json());
+        } catch(e){ if(e.name==='AbortError') throw e; }
     }
     return all;
 }
 
+async function fetchOverpass(la, lo, r, ctrl) {
+    const rm = r * 1000;
+    const q = `[out:json][timeout:25];(
+  node["amenity"="veterinary"](around:${rm},${la},${lo});
+  way["amenity"="veterinary"](around:${rm},${la},${lo});
+  node["healthcare"="veterinary"](around:${rm},${la},${lo});
+  node["name"~"[Vv][eé]t[eé]rin|بيطر|[Cc]linique.*[Aa]nim",i](around:${rm},${la},${lo});
+  way["name"~"[Vv][eé]t[eé]rin|بيطر|[Cc]linique.*[Aa]nim",i](around:${rm},${la},${lo});
+);out center tags;`;
+    for(const url of OVERPASS_SERVERS){
+        try{
+            const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q), signal:ctrl.signal});
+            if(!res.ok) continue;
+            const j = await res.json();
+            return (j.elements||[]).map(el=>({
+                lat: String(el.lat ?? el.center?.lat ?? 0),
+                lon: String(el.lon ?? el.center?.lon ?? 0),
+                name: (el.tags?.name || el.tags?.['name:ar'] || el.tags?.['name:fr'] || ''),
+                display_name: (el.tags?.name || '')
+            })).filter(p=>parseFloat(p.lat)&&parseFloat(p.lon));
+        } catch(e){ if(e.name==='AbortError') throw e; }
+    }
+    return [];
+}
+
 async function reverseGeo(la,lo){
     try{
-        const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${la}&lon=${lo}&accept-language=ar`);
+        const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+la+'&lon='+lo+'&accept-language=ar');
         const d=await r.json();
         if(d?.address){
             const city=d.address.city||d.address.town||d.address.village||'';
@@ -593,35 +626,48 @@ async function search(la, lo) {
     const geo = await reverseGeo(la, lo);
     if(s!==seq) return;
     if(geo.cc) renderEmergency(geo.cc);
-    const norm = arr => arr.map(p=>({...p, dist:haversine(la,lo,p.lat,p.lon)})).sort((a,b)=>a.dist-b.dist);
-    function dedup(arr){const seen=new Set();return arr.filter(m=>{const k=m.lat.toFixed(4)+','+m.lon.toFixed(4);if(seen.has(k))return false;seen.add(k);return true;});}
 
-    // Accumulate all results across radii before showing "not found"
-    let allFound = false;
-    async function tryR(ri, req=true){
+    function norm(arr){
+        return arr.map(p=>{
+            const mL=parseFloat(p.lat), mO=parseFloat(p.lon||p.lon);
+            const n=p.name||(p.display_name?.split(',')[0].trim())||'عيادة بيطرية';
+            return{name:n, lat:mL, lon:mO, dist:haversine(la,lo,mL,mO)};
+        }).sort((a,b)=>a.dist-b.dist);
+    }
+    function dedup(arr){
+        const seen=new Set();
+        return arr.filter(m=>{const k=m.lat.toFixed(3)+','+m.lon.toFixed(3);if(seen.has(k))return false;seen.add(k);return true;});
+    }
+
+    async function tryR(ri){
         const r = RADII[ri]; if(r===undefined) return false;
-        listMsg(`🐾 البحث في نطاق ${r<1?r*1000+' م':r+' كم'}...`);
-        let data, t=null;
+        listMsg('🐾 البحث في نطاق '+r+' كم...');
+        const ctrl = new AbortController();
+        const t = setTimeout(()=>ctrl.abort(), 30000);
         try{
-            const ctrl = new AbortController();
-            t = setTimeout(()=>ctrl.abort(), 25000);
-            data = await fetchVets(la, lo, r, ctrl);
+            // Lance Nominatim et Overpass en parallèle
+            const [nom, ovp] = await Promise.allSettled([
+                fetchNominatim(la, lo, r, ctrl),
+                fetchOverpass(la, lo, r, ctrl)
+            ]);
+            if(s!==seq) return true;
+            const raw = [
+                ...(nom.status==='fulfilled' ? nom.value : []),
+                ...(ovp.status==='fulfilled' ? ovp.value : [])
+            ];
+            const items = dedup(norm(raw).filter(m=>m.dist<=r&&m.lat&&m.lon));
+            if(!items.length) return false;
+            renderList(items, r, 5, geo.label, ri<RADII.length-1 ? ()=>tryR(ri+1) : null);
+            return true;
         } catch(e){
             if(s!==seq) return true;
-            if(e.name==='AbortError') listMsg('⚠️ انتهت مهلة الاتصال. تحقق من الإنترنت وأعد المحاولة.');
-            else listMsg('⚠️ تعذّر الاتصال بالخوادم. تحقق من الإنترنت وأعد المحاولة.');
+            listMsg('⚠️ تعذّر الاتصال. تحقق من الإنترنت وأعد المحاولة.');
             return true;
-        } finally{ if(t) clearTimeout(t); }
-        if(s!==seq) return true;
-        if(!data || !data.length){ return false; }
-        const items = dedup(norm(data).filter(m=>m.dist<=r));
-        if(!items.length){ return false; }
-        allFound = true;
-        renderList(items, r, 5, geo.label, ri<RADII.length-1 ? ()=>tryR(ri+1,false) : null);
-        return true;
+        } finally{ clearTimeout(t); }
     }
+
     for(let i=0;i<RADII.length;i++){ if(await tryR(i)) return; }
-    if(!allFound) listMsg('لم يتم العثور على عيادات بيطرية في هذه المنطقة. جرّب الوضع اليدوي.');
+    listMsg('لم يتم العثور على عيادات بيطرية. جرّب الوضع اليدوي أو وسّع النطاق.');
 }
 
 function updateStats(items, r){
@@ -784,8 +830,17 @@ window.onload = function(){
     document.getElementById('apply-btn').onclick = applyManual;
     document.getElementById('manual-coords').addEventListener('keydown',e=>{if(e.key==='Enter')applyManual();});
 
-    // Start
-    startGPS();
+    // ══ Demande GPS au démarrage ══
+    listMsg('📡 في انتظار إذن الموقع...');
+    if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(
+            pos => { applyPos(pos, false); startGPS(); },
+            err => { startGPS(); },
+            {enableHighAccuracy:true, timeout:8000, maximumAge:0}
+        );
+    } else {
+        startGPS();
+    }
     initPrayer();
 
     // 🐱 Ronronnement de Minouch toutes les 15 minutes
