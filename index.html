@@ -4,29 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>طبيب بيطري</title>
-    <meta name="theme-color" content="#05080f">
+    <meta name="theme-color" content="#2c1200">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="بيطري">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%2305080f'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle'%3E🐾%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%232c1200'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle'%3E🐾%3C/text%3E%3C/svg%3E">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
     <style>
         :root {
-            --bg:     #05080f;
-            --bg2:    #080c18;
-            --gold:   #f5c842;
-            --gold-s: #ffe97a;
-            --gold-d: #a0720a;
-            --gold-m: #c8960e;
-            --glow:   rgba(245,200,66,0.45);
-            --glow2:  rgba(245,200,66,0.15);
-            --text:   #fdf6e0;
-            --dim:    #b89a50;
-            --card:   rgba(8,12,24,0.85);
-            --cb:     rgba(245,200,66,0.3);
+            --bg:     #2c1200;
+            --bg2:    #3d1a00;
+            --gold:   #D4671E;
+            --gold-s: #F5A050;
+            --gold-d: #8B3A0F;
+            --gold-m: #C05A18;
+            --glow:   rgba(212,103,30,0.6);
+            --glow2:  rgba(212,103,30,0.2);
+            --text:   #F5C98A;
+            --dim:    #C07840;
+            --card:   rgba(44,18,0,0.90);
+            --cb:     rgba(212,103,30,0.4);
             --green:  #2ecc71;
             --red:    #e74c3c;
         }
@@ -48,15 +48,15 @@
         .bg-mesh {
             position: fixed; inset: 0; z-index: 0;
             background:
-                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(180,130,10,0.18) 0%, transparent 65%),
-                radial-gradient(ellipse 50% 40% at 80% 80%, rgba(100,60,5,0.12) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 10% 60%, rgba(50,30,5,0.1) 0%, transparent 60%);
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(212,103,30,0.25) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 40% at 80% 80%, rgba(139,58,15,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 10% 60%, rgba(100,40,10,0.14) 0%, transparent 60%);
         }
         .bg-grid {
             position: fixed; inset: 0; z-index: 0; opacity: 0.025;
             background-image:
-                linear-gradient(rgba(245,200,66,1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(245,200,66,1) 1px, transparent 1px);
+                linear-gradient(rgba(212,103,30,1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(212,103,30,1) 1px, transparent 1px);
             background-size: 40px 40px;
         }
 
@@ -442,7 +442,7 @@
         </div>
         <div class="hero-title">طبيب بيطري</div>
         <div class="hero-sub">أقرب العيادات البيطرية · نظام تحديد المواقع</div>
-        <div class="hero-credit">✦ وَقْفٌ عَلَى رُوحِ صَدِيقِي العَزِيز مَاهِر دْرِيدِي ✦</div>
+        <div class="hero-credit">✦ في ذِكْرى قِطِّي العَزِيز مِينُوش ✦</div>
         <div class="hero-rule"></div>
         <div class="hero-stars">
             <span class="hs">✦</span>
@@ -554,31 +554,36 @@ function showFlex(id){show(id,'flex');}
 // ══ OVERPASS SEARCH ══
 async function fetchVets(la, lo, r, ctrl) {
     const rm = r * 1000;
-    // Balayage large : tous les tags possibles pour un vétérinaire
     const q = `[out:json][timeout:30];(
   node["amenity"="veterinary"](around:${rm},${la},${lo});
   way["amenity"="veterinary"](around:${rm},${la},${lo});
+  relation["amenity"="veterinary"](around:${rm},${la},${lo});
   node["shop"="veterinary"](around:${rm},${la},${lo});
   way["shop"="veterinary"](around:${rm},${la},${lo});
   node["healthcare"="veterinary"](around:${rm},${la},${lo});
   way["healthcare"="veterinary"](around:${rm},${la},${lo});
-  node["amenity"="animal_shelter"](around:${rm},${la},${lo});
-  node["name"~"[Vv]et[eé]rin|[Bb]eit[ae]ri|بيطر|حيوان",i](around:${rm},${la},${lo});
-  way["name"~"[Vv]et[eé]rin|[Bb]eit[ae]ri|بيطر|حيوان",i](around:${rm},${la},${lo});
-);out center;`;
+  node["name"~"[Vv][eé]t[eé]rin|[Bb]eit[ae]ri|بيطر|clinique.*anim|anim.*clin",i](around:${rm},${la},${lo});
+  way["name"~"[Vv][eé]t[eé]rin|[Bb]eit[ae]ri|بيطر|clinique.*anim|anim.*clin",i](around:${rm},${la},${lo});
+);out center tags;`;
     const servers = [
         'https://overpass-api.de/api/interpreter',
         'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass.private.coffee/api/interpreter',
         'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
     ];
     for(const url of servers){
         try{
-            const res = await fetch(url, {method:'POST', body:q, signal:ctrl.signal});
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'data=' + encodeURIComponent(q),
+                signal: ctrl.signal
+            });
             if(!res.ok) continue;
             const j = await res.json();
             return (j.elements||[]).map(el=>{
-                const lt = el.lat||(el.center?.lat)||0;
-                const ln = el.lon||(el.center?.lon)||0;
+                const lt = el.lat ?? el.center?.lat ?? 0;
+                const ln = el.lon ?? el.center?.lon ?? 0;
                 const tags = el.tags||{};
                 const name = tags.name||tags['name:ar']||tags['name:fr']||tags['name:en']||'عيادة بيطرية';
                 return {lat:lt, lon:ln, name};
@@ -791,6 +796,35 @@ window.onload = function(){
     // Start
     startGPS();
     initPrayer();
+
+    // 🐱 Ronronnement de Minouch toutes les 15 minutes
+    function purr() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            function purrCycle(t, duration) {
+                if (t >= duration) { setTimeout(()=>ctx.close(), 500); return; }
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 280;
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(28 + 18 * Math.sin(2 * Math.PI * 0.7 * t), ctx.currentTime);
+                gain.gain.setValueAtTime(0, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.06);
+                gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.14);
+                gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.22);
+                osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+                osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.22);
+                setTimeout(() => purrCycle(t + 0.25, duration), 250);
+            }
+            purrCycle(0, 7);
+        } catch(e) {}
+    }
+    setTimeout(function purrLoop() {
+        purr();
+        setTimeout(purrLoop, 15 * 60 * 1000);
+    }, 15 * 60 * 1000);
 };
 </script>
 </body>
