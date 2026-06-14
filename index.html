@@ -685,6 +685,11 @@ function renderEmergency(cc){
 // ══ GPS ══
 function applyPos(pos, notify=true){
     const{latitude:nl,longitude:no,accuracy:ac}=pos.coords;
+    // Attendre une précision acceptable (< 200m)
+    if(ac > 200){
+        document.getElementById('gps-txt').textContent='📡 GPS en cours... دقة: '+Math.round(ac)+'م (انتظار إشارة أفضل)';
+        return;
+    }
     const has=Number.isFinite(lat);
     const dist=has?haversine(lat,lng,nl,no):Infinity;
     if(!has||dist>0.05){
