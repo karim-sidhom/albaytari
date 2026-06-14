@@ -6,6 +6,9 @@
     <title>طبيب بيطري</title>
     <meta name="theme-color" content="#1a0800">
     <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%231a0800'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle'%3E🐾%3C/text%3E%3C/svg%3E">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -467,7 +470,7 @@
     <!-- HEADER -->
     <div class="header">
         <div class="crown-ring" id="crown-ring">
-            <div style="font-size:46px;line-height:1;filter:drop-shadow(0 0 16px var(--gold-bright));">🦷</div>
+            <div style="font-size:46px;line-height:1;filter:drop-shadow(0 0 16px var(--gold-bright));">🐾</div>
         </div>
         <div class="app-title-arabic">طبيب بيطري</div>
         <div class="app-sub">تحديد أقرب الأطبّاء البيطريين · نظام تحديد المواقع</div>
@@ -475,9 +478,9 @@
         <div class="header-line"></div>
         <div class="stars-row">
             <span class="star-item">✦</span>
-            <span class="star-item">🦷</span>
+            <span class="star-item">🐾</span>
             <span class="star-item">★</span>
-            <span class="star-item">🦷</span>
+            <span class="star-item">🐾</span>
             <span class="star-item">✦</span>
         </div>
     </div>
@@ -539,7 +542,7 @@
         </a>
     </div>
 
-    <div class="ornament-divider">✦ 🦷 ★ 🦷 ✦</div>
+    <div class="ornament-divider">✦ 🐾 ★ 🐾 ✦</div>
 
 
     <!-- زر الأُورَاتُور -->
@@ -555,7 +558,7 @@
 
     <!-- قائمة الصرّافات -->
     <div class="sec-head">
-        <span>🦷</span>
+        <span>🐾</span>
         <span id="zone-title">الأطبّاء البيطريون القريبون</span>
     </div>
     <div class="atm-list" id="atm-list"></div>
@@ -755,7 +758,7 @@ function renderATMs(items, radiusKm, shown=5, placeLabel='', onExpand=null, rere
         const info=document.createElement('div'); info.className='p-info';
         const nm=document.createElement('div'); nm.className='p-name'; nm.textContent=m.name||'عيادة بيطرية';
         const bank=getBankName(m.name);
-        const bnk=document.createElement('div'); bnk.className='p-bank'; bnk.textContent=bank?`🏦 ${bank}`:'🦷 عيادة بيطرية';
+        const bnk=document.createElement('div'); bnk.className='p-bank'; bnk.textContent=bank?`🏦 ${bank}`:'🐾 عيادة بيطرية';
         const ds=document.createElement('div'); ds.className='p-dist'; ds.textContent=`📍 ${m.dist<1?(m.dist*1000).toFixed(0)+' م':m.dist.toFixed(2)+' كم'}`;
         info.append(nm,bnk,ds);
         const btn=document.createElement('a'); btn.className='btn-map'; btn.target='_blank'; btn.rel='noopener';
@@ -809,7 +812,7 @@ async function findNearbyATMs(lat,lon){
     function dedup(arr){ const seen=new Set(); return arr.filter(m=>{ const k=m.lat.toFixed(4)+','+m.lon.toFixed(4); if(seen.has(k)) return false; seen.add(k); return true; }); }
     async function tryR(rIdx,req=true){
         const r=RADII[rIdx]; if(!r)return false;
-        atmState(`🦷 البحث في نطاق ${r<1?r*1000+' م':r+' كم'}...`);
+        atmState(`🐾 البحث في نطاق ${r<1?r*1000+' م':r+' كم'}...`);
         let pay,t=null;
         try{const ctrl=new AbortController();t=setTimeout(()=>ctrl.abort(),12000);pay=await fetchATM(lat,lon,r,ctrl);}
         catch(e){if(seq!==atmSearchSeq)return true;atmState('⚠️ تعذّر الاتصال بالخوادم. حاول مجدداً.');return true;}
@@ -945,6 +948,7 @@ window.onload=function(){
             purrCycle(0, 7);
         } catch(e) {}
     }
+    purr(); // ronron au démarrage
     setTimeout(function purrLoop(){ purr(); setTimeout(purrLoop, 15*60*1000); }, 15*60*1000);
 };
 
