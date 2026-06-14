@@ -540,7 +540,7 @@ window.addEventListener('appinstalled', () => { document.getElementById('pwa-btn
 
 // ══ CORE ══
 const d2r = d => d * Math.PI / 180;
-const RADII = [0.5, 1, 2, 5, 10, 20];
+const RADII = [5, 10, 20, 40];
 const GPS_OPT = {enableHighAccuracy:true, timeout:20000, maximumAge:0};
 let lat=null, lng=null, wid=null, seq=0;
 let lastItems=[], ttsOn=true, arVoice=null, pData=null, pTick=null;
